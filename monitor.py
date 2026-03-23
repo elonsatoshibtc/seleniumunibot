@@ -1,75 +1,61 @@
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
+import os
 import time
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
 
-def setup_driver():
-    options = Options()
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--disable-gpu")
-    options.add_argument("--window-size=1920,1080")
-    driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
-    return driver
+# Railway Chrome fix
+chrome_options = Options()
+chrome_options.binary_location = "/usr/bin/google-chrome-stable"
+chrome_options.add_argument("--no-sandbox")
+chrome_options.add_argument("--disable-dev-shm-usage")
+chrome_options.add_argument("--disable-gpu")
+chrome_options.add_argument("--headless")
+chrome_options.add_argument("--remote-debugging-port=9222")
+chrome_options.add_argument("--window-size=1920,1080")
 
 def main():
-    print("🚀 Telegram Group Monitor Starting...")
-    driver = setup_driver()
+    print("🚀 Starting FIXED Telegram Monitor...")
     
-    # LOGIN (ONE TIME ONLY)
+    # Use Railway's pre-installed Chrome
+    driver = webdriver.Chrome(options=chrome_options)
+    
+    print("🔐 STEP 1: Go to https://web.telegram.org")
     driver.get("https://web.telegram.org")
-    print("🔐 STEP 1: Scan QR code with Telegram app...")
-    input("Login done? Press ENTER...")
+    print("📱 MANUAL LOGIN: Scan QR code with Telegram app")
+    input("Login done & on target group? Press ENTER...")
     
-    print("📱 STEP 2: Click your target group...")
-    input("On target group? Press ENTER...")
-    
-    print("✅ 24/7 MONITORING ACTIVE!")
+    print("✅ MONITORING 24/7...")
     
     while True:
         try:
+            # Check recent messages
             messages = driver.find_elements(By.CSS_SELECTOR, "[data-message-id]")
-            
-            for msg in messages[-5:]:
+            for msg in messages[-3:]:
                 msg_text = msg.text.lower()
                 
-                # TRIGGER WORDS (edit these later)
+                # Triggers
                 if any(word in msg_text for word in ["entry", "buy", "sell", "signal"]):
                     buttons = msg.find_elements(By.TAG_NAME, "button")
                     for btn in buttons:
-                        if any(x in btn.text.lower() for x in ["click", "join", "tap"]):
-                            print(f"🖱️ CLICKED: {btn.text}")
+                        btn_text = btn.text.lower()
+                        if "click" in btn_text or "join" in btn_text:
+                            print(f"🖱️ CLICKING: {btn.text}")
                             btn.click()
-                            time.sleep(3)
+                            time.sleep(2)
                             
-                            # COPY RESULT
-                            result = driver.find_elements(By.CSS_SELECTOR, "[data-message-id]")[-1].text
+                            # Get result
+                            result = messages[-1].text if messages else ""
                             print(f"📋 COPIED: {result}")
                             
-                            # SEND TO WEBSITE
-                            submit_to_website(driver, result)
+                            # Website submit (customize later)
+                            print(f"🌐 WOULD SUBMIT: {result[:50]}...")
                             break
             
-            time.sleep(3)
-        except:
             time.sleep(5)
-
-def submit_to_website(driver, text):
-    print(f"🌐 SENDING: {text[:50]}...")
-    driver.execute_script("window.open('');")
-    driver.switch_to.window(driver.window_handles[1])
-    driver.get("https://your-website.com")  # CHANGE THIS
-    
-    try:
-        driver.find_element(By.ID, "signal").send_keys(text)
-        driver.find_element(By.XPATH, "//button[@type='submit']").click()
-        print("✅ SUBMITTED!")
-    except:
-        print("❌ Form needs HTML customization")
-    
-    driver.close()
-    driver.switch_to.window(driver.window_handles[0])
+        except Exception as e:
+            print(f"Error: {e}")
+            time.sleep(5)
 
 if __name__ == "__main__":
     main()
